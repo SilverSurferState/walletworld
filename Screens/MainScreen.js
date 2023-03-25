@@ -1,37 +1,41 @@
 import { View, StyleSheet, TouchableOpacity, Text, ScrollView } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { useState } from "react";
-import realm from "../Data/realm";
 import { LineChartCard, BarChartCard, BezierChartCard } from '../components/ChartCard';
+import { UUID } from '../Data/IdGenerator';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {DATA} from "../Constants/constants"
 
-const chartData = {
-  labels: [],
-  datasets: [
-    {
-      data: [],
-      color: (opacity = 1) => `rgba(255, 0, 0, ${opacity})`,
-      strokeWidth: 2,
-    },
-  ],
-};
 
 function MainScreen({ navigation }) {
   const [cards, setCards] = useState([]);
 
-  const addCard = () => {
-    const id = new Date().toISOString();
+  const getData = async (id) => {
+    try {
+      const jsonValue = await AsyncStorage.getItem(id);
+      console.log(jsonValue)
+      if (jsonValue ) {
+        return JSON.parse(jsonValue);
+      } else {
+        return DATA;
+      }
+    } catch (e) {
+      // error reading value
+      console.error(e);
+      return null;
+    }
+  }
+
+  const addCard = async () => {
+    const id = UUID;
     const type = "line";
-    const data = JSON.stringify(chartData);
-  
-    // realm.write(() => {
-    //   realm.create("Card", {
-    //     id,
-    //     type,
-    //     data,
-    //   });
-    // });
-  
-    setCards([...cards, { id, type, data }]);
+    const storageKey = `chartData-${id}`;
+    try {
+      await AsyncStorage.setItem(storageKey, JSON.stringify(DATA));
+    } catch (error) {
+      console.log("Error saving", error);
+    }
+    setCards([...cards, { id, type }]);
   };
 
   const removeCard = () => {
@@ -43,7 +47,7 @@ function MainScreen({ navigation }) {
   const renderCard = (card) => {
     switch (card.type) {
       case "line":
-        return <LineChartCard key={card.id} data={JSON.parse(card.data)} />;
+        return <LineChartCard key={card.id} chartId={card.id} getData={getData} />;
       case "bar":
         return <BarChartCard key={card.id} data={JSON.parse(card.data)} />;
       case "bezier":
@@ -53,23 +57,22 @@ function MainScreen({ navigation }) {
     }
   };
 
-
   return (
     <View style={styles.viewcontainer}> 
-    <View style={styles.buttonSet}>
-      <TouchableOpacity  onPress={addCard} name='add'>
-        <View style={styles.button}>
-          <Icon name="plus" type="font-awesome-5" size={20}/></View>
-      </TouchableOpacity>
+      <View style={styles.buttonSet}>
+        <TouchableOpacity  onPress={addCard} name='add'>
+          <View style={styles.button}>
+            <Icon name="plus" type="font-awesome-5" size={20}/></View>
+        </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate("Settings")}>
           <View style={[styles.button]}>
             <Icon name="gears" size={20}></Icon>
           </View>
         </TouchableOpacity>
       </View>
-    <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-    {cards.map((card) => renderCard(card))}
-    </ScrollView>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        {cards.map((card) => renderCard(card))}
+      </ScrollView>
     </View>
   );
 }

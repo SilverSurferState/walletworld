@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -9,60 +9,24 @@ import {
 import { LineChart, BarChart } from "react-native-chart-kit";
 import { Card, Text } from "react-native-elements";
 import { useNavigation } from "@react-navigation/native";
+import MainScreen from "../Screens/MainScreen";
+import { DATA, CONFIG } from "../Constants/constants"
 
-const chartData = {
-  labels: [],
-  datasets: [
-    {
-      data: [0],
-      color: (opacity = 1) => `rgba(255, 0, 0, ${opacity})`,
-      strokeWidth: 2,
-    },
-  ],
-};
-
-const chartConfig = {
-  backgroundGradientFrom: "#fff",
-  backgroundGradientTo: "#fff",
-  color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-};
-
-export function LineChartCard() {
+export function LineChartCard(props) {
+  const {chartId, getData } = props;
+  console.log(chartId)
   const [title, setTitle] = useState("Enter expenses title");
   const navigation = useNavigation();
-  return (
-    <View style={{ flex: 1 }}>
-      <Card containerStyle={styles.card}>
-        <TextInput
-          style={styles.titleInput}
-          value={title}
-          onChangeText={(text) => setTitle(text)}
-        />
+  const [chartDataState, setChartDataState] = useState(DATA);
 
-        <Card.Divider />
-        <View style={styles.chartContainer}>
-		<TouchableOpacity
-            onPress={() => navigation.navigate("Details", {
-              chartData: chartData,
-              chartTitle: title,
-            })}
-          >
-            <LineChart
-              data={chartData}
-              width={Dimensions.get("window").width - 100}
-              height={220}
-              chartConfig={chartConfig}
-            />
-          </TouchableOpacity>
-        </View>
-      </Card>
-    </View>
-  );
-}
+  useEffect(() => {
+    const getDataFromStorage = async () => {
+      const data = await getData(chartId);
+      setChartDataState(data)
+    };
+    getDataFromStorage();
+  }, [chartId]);
 
-export function BarChartCard() {
-  const [title, setTitle] = useState("Enter expenses title");
-  const navigation = useNavigation();
   return (
     <View style={{ flex: 1 }}>
       <Card containerStyle={styles.card}>
@@ -75,16 +39,20 @@ export function BarChartCard() {
         <Card.Divider />
         <View style={styles.chartContainer}>
           <TouchableOpacity
-            onPress={() => navigation.navigate("Details", {
-              chartData: chartData,
-              chartTitle: title,
-            })}
+            onPress={() =>
+              navigation.navigate("Details", {
+                chartData: chartDataState,
+                chartTitle: title,
+                id: chartId,
+                getData: getData
+              })
+            }
           >
-            <BarChart
-              data={chartData}
+            <LineChart
+              data={chartDataState}
               width={Dimensions.get("window").width - 100}
               height={220}
-              chartConfig={chartConfig}
+              chartConfig={CONFIG}
             />
           </TouchableOpacity>
         </View>
@@ -93,9 +61,24 @@ export function BarChartCard() {
   );
 }
 
-export function BezierChartCard() {
+export function BarChartCard({ chartId }) {
   const [title, setTitle] = useState("Enter expenses title");
   const navigation = useNavigation();
+  const [chartDataState, setChartDataState] = useState([]);
+
+  useEffect(() => {
+    const getDataFromStorage = async () => {
+      const data = await getData(chartId);
+      setChartDataState(data);
+    };
+    getDataFromStorage();
+  }, [chartId]);
+
+  const getData = async (chartId) => {
+    const data = await props.getData(chartId);
+    return data;
+  };
+
   return (
     <View style={{ flex: 1 }}>
       <Card containerStyle={styles.card}>
@@ -107,14 +90,17 @@ export function BezierChartCard() {
 
         <Card.Divider />
         <View style={styles.chartContainer}>
-		<TouchableOpacity
-            onPress={() => navigation.navigate("Details", {
-              chartData: chartData,
-              chartTitle: title,
-            })}
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate("Details", {
+                chartData: chartDataState,
+                chartTitle: title,
+                id: chartId,
+              })
+            }
           >
-            <LineChart
-              data={chartData}
+            <BarChart
+              data={chartDataState}
               width={Dimensions.get("window").width - 100}
               height={220}
               chartConfig={chartConfig}
@@ -126,20 +112,89 @@ export function BezierChartCard() {
   );
 }
 
+export function BezierChartCard({ chartId }) {
+  const [title, setTitle] = useState("Enter expenses title");
+  const navigation = useNavigation();
+  const [chartDataState, setChartDataState] = useState([]);
+
+  useEffect(() => {
+    const getDataFromStorage = async () => {
+      const data = await MainScreen.getData(chartId);
+      setChartDataState(data);
+    };
+    getDataFromStorage();
+  }, [chartId]);
+
+  const getData = async (chartId) => {
+    const data = await MainScreen.getData(chartId);
+    return data;
+  };
+
+  return (
+    <View style={{ flex: 1 }}>
+      <Card containerStyle={styles.card}>
+        <TextInput
+          style={styles.titleInput}
+          value={title}
+          onChangeText={(text) => setTitle(text)}
+        />
+
+        <Card.Divider />
+        <View style={styles.chartContainer}>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate("Details", {
+                chartData: chartDataState,
+                chartTitle: title,
+                id: chartId,
+              })
+            }
+          >
+            <LineChart
+              data={chartDataState.length > 0 ? (
+                <LineChart
+                  data={chartDataState}
+                  width={Dimensions.get("window").width - 100}
+                  height={220}
+                  chartConfig={chartConfig}
+                />
+              ) : (
+                <Text>No data available</Text>
+              )}
+              width={Dimensions.get("window").width - 100}
+              height={220}
+              chartConfig={chartConfig}
+              bezier
+            />
+          </TouchableOpacity>
+        </View>
+      </Card>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   card: {
+    padding: 0,
     borderRadius: 10,
+    borderWidth: 0,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
     elevation: 5,
-  },
-  titleInput: {
-    fontSize: 18,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 10,
+    marginVertical: 10,
   },
   chartContainer: {
-    marginHorizontal: 5,
-    marginTop: 10,
-    width: Dimensions.get("window").width - 100,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  titleInput: {
+    fontSize: 20,
+    fontWeight: "bold",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ccc",
   },
 });
+
