@@ -1,17 +1,23 @@
-export const DATA = {
-    labels: [],
-    datasets: [
+export const DATA = [
+  { name : "",
+    data: [
       {
-        data: [0],
-        color: (opacity = 1) => `rgba(255, 0, 0, ${opacity})`,
-        strokeWidth: 2,
+        name: "",
+        color: "",
+        amount: 0
       },
-    ],
-  };
+    ]
+  },
+];
 
   
-  export const CONFIG = {
-    backgroundGradientFrom: "#fff",
-    backgroundGradientTo: "#fff",
+  export const chartConfig={
+    backgroundColor: '#1cc910',
+    backgroundGradientFrom: '#eff3ff',
+    backgroundGradientTo: '#efefef',
+    decimalPlaces: 2,
     color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+    style: {
+      borderRadius: 16,
+    },
   };

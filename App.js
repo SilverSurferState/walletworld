@@ -7,7 +7,8 @@ import SettingsScreen from './Screens/SettingsScreen';
 
 const Stack = createNativeStackNavigator();
 
-function App() {
+const App = () => {
+  
   return (
     <NavigationContainer>
       <Stack.Navigator>
@@ -17,6 +18,6 @@ function App() {
       </Stack.Navigator>
     </NavigationContainer>
   );
-}
+};
 
 export default App;

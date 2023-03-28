@@ -1,14 +1,23 @@
-import { View, StyleSheet, TouchableOpacity, Text } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Text, Alert } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 function SettingsScreen({navigation}) {
+
+  async function clearAsyncStorage() {
+    try {
+      await AsyncStorage.clear();
+      Alert.alert('AsyncStorage successfully cleared!')
+    } catch (e) {
+      Alert.alert('Failed to clear AsyncStorage: ', e);
+    }
+  }
+
   return (
     <View style={styles.container}>
-      <Text>Details</Text>
-      {/* <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigation.navigate("Settings")}>
-        <Text style={styles.buttonText}>Go to Settings</Text>
-      </TouchableOpacity> */}
+      <TouchableOpacity style={styles.button} onPress={() => clearAsyncStorage()}>
+        <Text>Reset All</Text>
+      </TouchableOpacity>
+    
     </View>
   );
 }

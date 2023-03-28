@@ -1,122 +1,256 @@
-import { View, StyleSheet, TouchableOpacity, Text, ScrollView } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome";
-import { useState } from "react";
-import { LineChartCard, BarChartCard, BezierChartCard } from '../components/ChartCard';
-import { UUID } from '../Data/IdGenerator';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {DATA} from "../Constants/constants"
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Button,
+  FlatList,
+  TouchableOpacity,
+  Modal,
+  TextInput,
+  ImageBackground,
+  Alert
+} from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { DATA } from '../Constants/constants';
+import { Ionicons } from '@expo/vector-icons';
 
+const MainScreen = ({ navigation }) => {
+  const [charts, setCharts] = useState(DATA);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [newChartName, setNewChartName] = useState("");
+  const [newChartBudget, setNewChartBudget] = useState("");
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  
 
-function MainScreen({ navigation }) {
-  const [cards, setCards] = useState([]);
+  useEffect(() => {
+    getData();
+  }, []);
 
-  const getData = async (id) => {
+  const getData = async () => {
     try {
-      const jsonValue = await AsyncStorage.getItem(id);
-      console.log(jsonValue)
-      if (jsonValue ) {
-        return JSON.parse(jsonValue);
-      } else {
-        return DATA;
+      const jsonValue = await AsyncStorage.getItem("charts");
+      if (jsonValue !== null) {
+        setCharts(JSON.parse(jsonValue));
       }
     } catch (e) {
-      // error reading value
-      console.error(e);
-      return null;
+      console.log(e);
     }
-  }
+  };
 
-  const addCard = async () => {
-    const id = UUID;
-    const type = "line";
-    const storageKey = `chartData-${id}`;
+  const storeData = async (value) => {
     try {
-      await AsyncStorage.setItem(storageKey, JSON.stringify(DATA));
-    } catch (error) {
-      console.log("Error saving", error);
-    }
-    setCards([...cards, { id, type }]);
-  };
-
-  const removeCard = () => {
-    if (cards.length > 0) {
-      setCards(cards.slice(0, cards.length - 1));
+      const jsonValue = JSON.stringify(value);
+      await AsyncStorage.setItem("charts", jsonValue);
+    } catch (e) {
+      console.log(e);
     }
   };
 
-  const renderCard = (card) => {
-    switch (card.type) {
-      case "line":
-        return <LineChartCard key={card.id} chartId={card.id} getData={getData} />;
-      case "bar":
-        return <BarChartCard key={card.id} data={JSON.parse(card.data)} />;
-      case "bezier":
-        return <BezierChartCard key={card.id} data={JSON.parse(card.data)} />;
-      default:
-        return null;
+  const handleAddChart = () => {
+    if (newChartName && newChartBudget) {
+      setModalVisible(false);
+      const newChart = {
+        name: newChartName,
+        data: [{}],
+        budget: newChartBudget,
+      };
+      setCharts([...charts, newChart]);
+      storeData([...charts, newChart]);
+      setNewChartName("");
+      setNewChartBudget("");
+    } else {
+      Alert.alert("Error", "Please enter chart name and budget");
     }
   };
 
   return (
-    <View style={styles.viewcontainer}> 
-      <View style={styles.buttonSet}>
-        <TouchableOpacity  onPress={addCard} name='add'>
-          <View style={styles.button}>
-            <Icon name="plus" type="font-awesome-5" size={20}/></View>
+    <ImageBackground source={require('../assets/ww.png')} style={styles.background}>
+      <View style={styles.container}>
+        <FlatList
+          data={charts}
+          keyExtractor={(item, index) => index.toString()}
+          renderItem={({ item, index }) => (
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => navigation.navigate("Details", { chartIndex: index, data: charts})}
+            >
+              <Text style={{fontWeight: 'bold', textAlign: 'center', fontSize: 20, color: 'white'}}>{item.name}</Text>
+            </TouchableOpacity>
+          )}
+        />
+        <TouchableOpacity
+          style={[styles.floatingButton, isExpanded && styles.floatingButtonExpanded]}
+          onPress={() => setIsExpanded(!isExpanded)}
+        >
+          <Ionicons name="menu" size={30} color="white" />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate("Settings")}>
-          <View style={[styles.button]}>
-            <Icon name="gears" size={20}></Icon>
+        {isExpanded && (
+          <View style={styles.buttonsContainer}>
+            <TouchableOpacity style={styles.button} onPress={() => setModalVisible(true)}>
+              <Ionicons name="stats-chart" size={30} color="white" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.button} onPress={()=>navigation.navigate("Settings")}>
+              <Ionicons name="settings" size={30} color="white" />
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
+        )}
+        <Modal
+          animationType="slide"
+          transparent={false}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <TextInput
+              style={styles.modalInput}
+              onChangeText={setNewChartName}
+              value={newChartName}
+              placeholder="Enter chart name"
+            />
+            <TextInput
+              style={styles.modalInput}
+              onChangeText={setNewChartBudget}
+              value={newChartBudget}
+              placeholder="Enter budget"
+            />
+            <TouchableOpacity style={styles.modalButton} onPress={handleAddChart}>
+              <Text style={styles.modalButtonText}>Add Chart</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.modalButton} onPress={() => setModalVisible(false)}>
+              <Text style={styles.modalButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
       </View>
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        {cards.map((card) => renderCard(card))}
-      </ScrollView>
-    </View>
-  );
-}
+    </ImageBackground>
+  )};
+  
 
 const styles = StyleSheet.create({
-  scrollcontainer: {
-    padding: 10,
-  },
-  viewcontainer: {
+  background: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
+    resizeMode: 'cover',
     justifyContent: 'center',
-    paddingTop: 10
+  },
+  container: {
+    flex: 1,
+    backgroundColor: "transparent",
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
   title: {
-    fontSize: 32,
+    fontSize: 20,
     fontWeight: "bold",
-    marginBottom: 32,
+    marginBottom: 10,
   },
   input: {
+    height: 40,
+    borderColor: "gray",
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 4,
-    padding: 12,
-    width: "80%",
-    marginBottom: 16,
-    fontSize: 18,
+    borderRadius: 5,
+    alignSelf: "stretch",
+    marginBottom: 10,
+    paddingHorizontal: 10,
+  },
+  addButton: {
+    backgroundColor: "blue",
+    padding: 10,
+    borderRadius: 5,
+    alignSelf: "flex-start",
+    marginBottom: 10,
+  },
+  addButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  listContainer: {
+    flex: 1,
+  },
+  listItem: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#ccc",
+    paddingVertical: 10,
+  },
+  listItemText: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  chartContainer: {
+    alignItems: "center",
+    marginTop: 20,
+  },
+  floatingButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    padding: 5,
+    marginTop: 5,
+    backgroundColor: '#7393B3',
+    borderRadius: 50,
+    height: 60,
+    width: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  floatingButtonExpanded: {
+    height: 60,
+    width: 60,
+    borderRadius: 60,
+  },
+  buttonsContainer: {
+    position: 'absolute',
+    bottom: 100,
+    right: 20,
+    flexDirection: 'column',
+    justifyContent: 'space-between',
   },
   button: {
-    backgroundColor: "#6699CC",
-    borderRadius: 10,
-    padding: 12,
-    margin: 6,
+    backgroundColor: '#7393B3',
+    borderRadius: 50,
+    height: 60,
+    width: 60,
+    padding: 5,
+    marginTop: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  buttonSet: {
-    top: 5,
-    flexDirection: 'row',
-    paddingBottom: 5,
-  },
-  buttonText: {
+  floatingButtonText: {
     color: "#fff",
-    fontSize: 18,
+    fontSize: 30,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F5FCFF",
+    padding: 20,
+  },
+  modalInput: {
+    height: 40,
+    borderColor: "gray",
+    borderWidth: 1,
+    borderRadius: 5,
+    alignSelf: "stretch",
+    marginBottom: 20,
+    padding: 10,
+  },
+  modalButton: {
+    backgroundColor: "#7393B3",
+    padding: 10,
+    borderRadius: 5,
+    alignSelf: "stretch",
+    marginBottom: 10,
+  },
+  modalButtonText: {
+    color: "#fff",
     fontWeight: "bold",
+    textAlign: "center",
   },
 });
 
