@@ -14,7 +14,7 @@ import { PieChart } from "react-native-chart-kit";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { chartConfig } from "../Constants/constants";
 import Dropdown from "./DropDown";
-import randomcolor from 'randomcolor';
+import { BackgroundImage } from "react-native-elements/dist/config";
 
 const Chart = ({ chartData, chartIndex }) => {
   const [modalVisible, setModalVisible] = useState(false);
@@ -22,102 +22,76 @@ const Chart = ({ chartData, chartIndex }) => {
   const [expenseValue, setExpenseValue] = useState(0);
   const [data, setExpenseData] = useState([]);
   const [dropDownValue, setDropDownValue] = useState(null);
-  
-
-  console.log("in chart:")
-  console.log(data)
-
-  const getColorByType = () => {
-    switch (dropDownValue) {
-      case "Food":
-        return "red";
-        break;
-      case "Housing/Rent":
-        return "blue";
-        break;
-      case "Clothing":
-        return "orange";
-        break;
-      default: randomcolor({exclude: ['red', 'blue', 'orange']})
-    }
-  };
-
- 
-
-  const basicExpense = {
-    name : "",
-    amount : 0,
-    color : 'blue'
-  }
-
+  let total = data.reduce((total, expense) => total + parseFloat(expense.amount), 0);
   const handleValueChange = (value) => {
     setDropDownValue(value);
   };
+
   useEffect(() => {
     getChartInfo();
-    console.log("fetched")
-    console.log(data.length)
-    if (data.length == 0){
-      setExpenseData(data => [...data, basicExpense])
-    } else {
-      setChartInfo();
-      console.log("set")
+    const basicExpense = {
+      name : "",
+      amount: 0,
+      color : 'transparent'
     }
-    
+    if (data.length === 0){
+      setExpenseData(data => [...data, basicExpense])
+    }
   }, []);
 
   const getChartInfo = async () => {
     try {
       const jsonValue = await AsyncStorage.getItem(`chart-${chartIndex}`);
       if (jsonValue !== null) {
-        let fetchedValue = {...JSON.parse(jsonValue)}
-        console.log(fetchedValue)
+        const fetchedValue = JSON.parse(jsonValue)
         if (data !== fetchedValue) 
-        {setExpenseData(JSON.parse(jsonValue));}
+        {setExpenseData(fetchedValue);}
       }
     } catch (e) {
       console.log(e);
     }
   };
 
- 
+  const storeData = async (value) => {
+    try {
+      AsyncStorage.setItem(`chart-${chartIndex}`, JSON.stringify(value));
+    } catch (e) {
+      console.log(e);
+    }
+  };
 
+ 
   const setChartInfo = () => {
     const newExpense = {
       name: expenseName,
       amount: expenseValue.toString(),
-      color: getColorByType(),
+      color: dropDownValue.color,
+      legendFontSize: 10,
+      legendFontColor: "#7F7F7F",
     };
-    setExpenseData(data => [...data, newExpense])
-    setExpenseData((data) => data.filter(e => e.name !== ""))
-    AsyncStorage.setItem(`chart-${chartIndex}`, JSON.stringify(data));
-
+    const newExpenseData = [...data, newExpense];
+    const filtered = newExpenseData.filter(e => e.name !== "");
+    setExpenseData(filtered)
+    storeData(filtered)
     setModalVisible(false);
     setExpenseName("");
     setExpenseValue("");
   };
 
+
   const handleModalClose = () => {
-    // Update the chart data and save it to AsyncStorage
     setModalVisible(false);
   };
-  console.log(data)
+
+
+
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>{chartData.name}</Text>
-        <TouchableOpacity onPress={() => onDeleteChart(chartIndex)}>
-          <Text style={styles.headerButton}>Delete</Text>
-        </TouchableOpacity>
-      </View>
-      {(
-        <>
           <PieChart
             data={data}
             width={Dimensions.get("window").width - 16}
             height={220}
             chartConfig={chartConfig}
-            hasLegend={false}
             accessor="amount"
             style={{
               marginVertical: 8,
@@ -128,7 +102,8 @@ const Chart = ({ chartData, chartIndex }) => {
             center={[10, 0]}
             absolute
           />
-          <FlatList
+          <Text>Total amount spent : {total}</Text>
+          {(data[0]?.amount !== 0) && <FlatList
             data={data}
             keyExtractor={(item, index) => index.toString()}
             renderItem={({ item, index }) => (
@@ -137,9 +112,8 @@ const Chart = ({ chartData, chartIndex }) => {
                 <Text style={styles.rightText}>€{item.amount}</Text>
               </View>
             )}
-          />
-        </>
-      )}
+          />}
+        
       <TouchableOpacity onPress={() => setModalVisible(true)}>
         <Text style={styles.addButton}>Add Expense</Text>
       </TouchableOpacity>
@@ -177,15 +151,17 @@ const Chart = ({ chartData, chartIndex }) => {
             style={styles.modalButton}
             onPress={() => setModalVisible(false)}
           >
-            <Text style={styles.modalButtonText}>Cancel</Text>
+            <Text style={styles.modalButtonText}>Back</Text>
           </TouchableOpacity>
         </View>
       </Modal>
+      
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  
   container: {
     flex: 1,
     backgroundColor: "#F0F4F7",
@@ -216,7 +192,7 @@ const styles = StyleSheet.create({
   headerText: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#4F4F4F",
+    color: "#7393B3",
   },
   headerButton: {
     color: "#4F4F4F",

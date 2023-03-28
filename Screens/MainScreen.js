@@ -9,35 +9,40 @@ import {
   Modal,
   TextInput,
   ImageBackground,
-  Alert
+  Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { DATA } from '../Constants/constants';
-import { Ionicons } from '@expo/vector-icons';
+import { DATA } from "../Constants/constants";
+import { Ionicons } from "@expo/vector-icons";
 
 const MainScreen = ({ navigation }) => {
-  const [charts, setCharts] = useState(DATA);
+  const basicChartsArray = DATA;
+  const [charts, setCharts] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [newChartName, setNewChartName] = useState("");
   const [newChartBudget, setNewChartBudget] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
-  
-  
 
   useEffect(() => {
     getData();
+    if (charts.length === 0) {
+      setCharts(basicChartsArray);
+    }
   }, []);
 
-  const getData = async () => {
+  async function getData() {
     try {
       const jsonValue = await AsyncStorage.getItem("charts");
       if (jsonValue !== null) {
-        setCharts(JSON.parse(jsonValue));
+        const fetched = JSON.parse(jsonValue);
+        if (charts !== fetched) {
+          setCharts(fetched);
+        }
       }
     } catch (e) {
       console.log(e);
     }
-  };
+  }
 
   const storeData = async (value) => {
     try {
@@ -56,8 +61,12 @@ const MainScreen = ({ navigation }) => {
         data: [{}],
         budget: newChartBudget,
       };
-      setCharts([...charts, newChart]);
-      storeData([...charts, newChart]);
+      const newChartsArray = Array.isArray(charts)
+        ? [...charts, newChart]
+        : [newChart];
+      const filteredCharts = newChartsArray.filter((c) => c.name !== "f1rst");
+      setCharts(filteredCharts);
+      storeData(filteredCharts);
       setNewChartName("");
       setNewChartBudget("");
     } else {
@@ -66,36 +75,65 @@ const MainScreen = ({ navigation }) => {
   };
 
   return (
-    <ImageBackground source={require('../assets/ww.png')} style={styles.background}>
+    <ImageBackground
+      source={require("../assets/ww.png")}
+      style={styles.background}
+    >
       <View style={styles.container}>
-        <FlatList
-          data={charts}
-          keyExtractor={(item, index) => index.toString()}
-          renderItem={({ item, index }) => (
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={() => navigation.navigate("Details", { chartIndex: index, data: charts})}
-            >
-              <Text style={{fontWeight: 'bold', textAlign: 'center', fontSize: 20, color: 'white'}}>{item.name}</Text>
-            </TouchableOpacity>
-          )}
-        />
+        {charts[0]?.name !== "f1rst" && (
+          <FlatList
+            data={charts}
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={({ item, index }) => (
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() =>
+                  navigation.navigate("Details", {
+                    chartIndex: index,
+                    data: charts,
+                  })
+                }
+              >
+                <Text
+                  style={{
+                    fontWeight: "bold",
+                    textAlign: "center",
+                    fontSize: 20,
+                    color: "white",
+                  }}
+                >
+                  {item.name}
+                </Text>
+              </TouchableOpacity>
+            )}
+          />
+        )}
         <TouchableOpacity
-          style={[styles.floatingButton, isExpanded && styles.floatingButtonExpanded]}
+          style={[
+            styles.floatingButton,
+            isExpanded && styles.floatingButtonExpanded,
+          ]}
           onPress={() => setIsExpanded(!isExpanded)}
         >
           <Ionicons name="menu" size={30} color="white" />
         </TouchableOpacity>
         {isExpanded && (
           <View style={styles.buttonsContainer}>
-            <TouchableOpacity style={styles.button} onPress={() => setModalVisible(true)}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => setModalVisible(true)}
+            >
               <Ionicons name="stats-chart" size={30} color="white" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.button} onPress={()=>navigation.navigate("Settings")}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => navigation.navigate("Settings")}
+            >
               <Ionicons name="settings" size={30} color="white" />
             </TouchableOpacity>
           </View>
         )}
+
         <Modal
           animationType="slide"
           transparent={false}
@@ -115,24 +153,30 @@ const MainScreen = ({ navigation }) => {
               value={newChartBudget}
               placeholder="Enter budget"
             />
-            <TouchableOpacity style={styles.modalButton} onPress={handleAddChart}>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={handleAddChart}
+            >
               <Text style={styles.modalButtonText}>Add Chart</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.modalButton} onPress={() => setModalVisible(false)}>
-              <Text style={styles.modalButtonText}>Cancel</Text>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.modalButtonText}>Back</Text>
             </TouchableOpacity>
           </View>
         </Modal>
       </View>
     </ImageBackground>
-  )};
-  
+  );
+};
 
 const styles = StyleSheet.create({
   background: {
     flex: 1,
-    resizeMode: 'cover',
-    justifyContent: 'center',
+    resizeMode: "cover",
+    justifyContent: "center",
   },
   container: {
     flex: 1,
@@ -186,17 +230,17 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   floatingButton: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 20,
     right: 20,
     padding: 5,
     marginTop: 5,
-    backgroundColor: '#7393B3',
+    backgroundColor: "#7393B3",
     borderRadius: 50,
     height: 60,
     width: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   floatingButtonExpanded: {
     height: 60,
@@ -204,21 +248,21 @@ const styles = StyleSheet.create({
     borderRadius: 60,
   },
   buttonsContainer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 100,
     right: 20,
-    flexDirection: 'column',
-    justifyContent: 'space-between',
+    flexDirection: "column",
+    justifyContent: "space-between",
   },
   button: {
-    backgroundColor: '#7393B3',
+    backgroundColor: "#7393B3",
     borderRadius: 50,
     height: 60,
     width: 60,
     padding: 5,
     marginTop: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   floatingButtonText: {
     color: "#fff",
